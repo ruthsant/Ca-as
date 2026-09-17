@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REEDS | Inventario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #f2f7f4; font-family: 'Outfit', sans-serif; color: #2d3748; }
+        .card-ui { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border: 1px solid #d1fae5; }
+        .row-fav { background-color: #ecfdf5 !important; }
+        .bg-concierto { color: #047857; font-weight: 600; }
+        .bg-estudio { color: #0284c7; font-weight: 600; }
+        .bg-tirar { color: #be123c; font-weight: 600; }
+        .bg-rompio { color: #7c3aed; font-weight: 600; }
+        .thumbnail { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid #a7f3d0; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Modal para ver la foto en grande -->
+    <div id="imageModal" class="hidden fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onclick="this.classList.add('hidden')">
+        <img id="fullImage" src="" class="max-w-full max-h-[90vh] rounded-lg shadow-2xl" onclick="event.stopPropagation()">
+    </div>
+
+    <header class="max-w-7xl mx-auto mb-10">
+        <h1 class="text-6xl font-bold text-emerald-600 tracking-tight">REEDS</h1>
+        <h2 class="text-4xl text-emerald-500 font-medium mt-1">Inventario</h2>
+        <div class="flex justify-between items-center mt-8">
+            <h3 class="text-lg font-semibold text-emerald-600">Registro de cañas</h3>
+            <button onclick="openModal()" class="bg-emerald-600 text-white px-6 py-2.5 rounded-full hover:bg-emerald-700 transition shadow-lg font-medium text-sm">
+                + Nueva Pala
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto">
+        <div class="mb-8 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3" id="dashboard-stats"></div>
+
+        <div class="card-ui rounded-3xl shadow-xl p-6 mb-8">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600 min-w-[1300px]">
+                    <thead class="border-b border-emerald-100">
+                        <tr class="text-emerald-600 text-xs uppercase tracking-widest font-bold">
+                            <th class="p-3 w-10">Fav</th>
+                            <th class="p-3">Lugar</th>
+                            <th class="p-3">Foto</th>
+                            <th class="p-3">Nº Pala</th>
+                            <th class="p-3">Marca</th>
+                            <th class="p-3">Mat.</th>
+                            <th class="p-3">Mancha</th>
+                            <th class="p-3">Diam.</th>
+                            <th class="p-3">Dens.</th>
+                            <th class="p-3">Gros.</th>
+                            <th class="p-3">Dureza</th>
+                            <th class="p-3">Tens.</th>
+                            <th class="p-3">Forma</th>
+                            <th class="p-3">Tudel</th>
+                            <th class="p-3">F. Atado</th>
+                            <th class="p-3">Long. (A/C)</th>
+                            <th class="p-3">F. Rasp 1</th>
+                            <th class="p-3">Val.</th>
+                            <th class="p-3">Etapa</th>
+                            <th class="p-3 text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reed-table-body" class="divide-y divide-emerald-50"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-12 p-8 card-ui rounded-3xl shadow-lg border-2 border-emerald-100">
+            <h3 class="text-emerald-600 font-bold uppercase text-xs mb-8 tracking-widest">Dashboard de Rendimiento por Parámetro</h3>
+            <div id="chart-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div id="analysis-section" class="p-8 card-ui rounded-3xl shadow-lg border-2 border-dashed border-emerald-200">
+                <h3 class="text-emerald-600 font-bold uppercase text-xs mb-8 tracking-widest">Tasa de éxito (%)</h3>
+                <div id="analysis-grid-succ" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+            </div>
+            <div id="failure-section" class="p-8 card-ui rounded-3xl shadow-lg border-2 border-dashed border-emerald-200">
+                <h3 class="text-emerald-600 font-bold uppercase text-xs mb-8 tracking-widest">Análisis de Fallos</h3>
+                <div id="analysis-grid-fail" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="reedModal" class="hidden fixed inset-0 bg-emerald-950 bg-opacity-30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl p-8 border border-emerald-100 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-semibold mb-6 text-emerald-600" id="modalTitle">Nueva Pala</h3>
+            <form id="reedForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="hidden" id="reedId">
+                <input type="text" id="palaNum" placeholder="Nº Pala" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500" required>
+                <input type="text" id="ciudad" placeholder="Ciudad (ej. MAD)" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500 uppercase" maxlength="3">
+                <input type="file" id="fotoFile" accept="image/*" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                <input type="text" id="marca" placeholder="Marca" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                <input type="text" id="material" placeholder="Material" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                <select id="mancha" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                    <option value="">Mancha...</option><option value="Sin mancha">Sin mancha</option><option value="Manchitas pequeñas">Manchitas pequeñas</option><option value="Mancha pequeña">Mancha pequeña</option><option value="Mancha grande">Mancha grande</option><option value="Mancha violeta">Mancha violeta</option>
+                </select>
+                <select id="diametro" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                    <option value="">Diámetro...</option><option value="10,5">10,5</option><option value="11">11</option><option value="11,5">11,5</option>
+                </select>
+                <input type="text" id="longitud" placeholder="Long. (Atada/Cortada)" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                <input type="number" step="0.01" id="densidad" placeholder="Densidad" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                <input type="number" step="0.01" id="grosor" placeholder="Grosor" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                <input type="number" step="0.01" id="dureza" placeholder="Dureza" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                <select id="tension" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                    <option value="">Tensión...</option><option>Alta</option><option>Media</option><option>Baja</option>
+                </select>
+                <input type="text" id="forma" placeholder="Forma" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                <input type="text" id="tudel" placeholder="Tudel" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                <input type="date" id="fechaAtado" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500" title="Fecha Atado">
+                <input type="date" id="fechaRasp1" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500" title="Fecha Rasp 1">
+                <select id="stage" class="md:col-span-2 border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500" required>
+                    <option value="Pre-gubiadas">Pre-gubiadas</option><option value="Gubiadas">Gubiadas</option><option value="Con forma">Con forma</option><option value="Atadas">Atadas</option><option value="Reposo">Reposo</option><option value="Finalizada">Finalizada</option><option value="Rotas">Rotas</option>
+                </select>
+                <select id="valoracion" class="border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500">
+                    <option value="">Valoración...</option>
+                    <option value="Concierto">Concierto</option>
+                    <option value="Estudio">Estudio</option>
+                    <option value="Tirar">Tirar</option>
+                    <option value="Se rompió">Se rompió</option>
+                </select>
+                <textarea id="sensaciones" placeholder="Notas..." class="md:col-span-3 border-2 border-emerald-100 rounded-xl p-3 outline-none focus:border-emerald-500" rows="2"></textarea>
+                <div class="flex justify-end gap-3 md:col-span-3 mt-4">
+                    <button type="button" onclick="closeModal()" class="px-6 py-2 text-emerald-600 font-medium">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-medium">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let reeds = JSON.parse(localStorage.getItem('reeds')) || [];
+        const stages = ['Pre-gubiadas', 'Gubiadas', 'Con forma', 'Atadas', 'Reposo', 'Finalizada', 'Rotas'];
+        let chartInstances = [];
+
+        window.viewPhoto = function(src) {
+            document.getElementById('fullImage').src = src;
+            document.getElementById('imageModal').classList.remove('hidden');
+        };
+
+        function getConfidenceColor(total, isSuccess) {
+            const baseColor = isSuccess ? [16, 185, 129] : [225, 29, 72];
+            if (total < 10) return `rgba(${baseColor[0]}, ${baseColor[1]}, ${baseColor[2]}, 0.3)`;
+            return `rgb(${baseColor[0]}, ${baseColor[1]}, ${baseColor[2]})`;
+        }
+
+        function updateCharts() {
+            const reedsStats = reeds.filter(r => r.stage !== 'Rotas');
+            const grid = document.getElementById('chart-grid');
+            grid.innerHTML = '';
+            chartInstances.forEach(c => c.destroy());
+            chartInstances = [];
+            const attrs = ['marca', 'material', 'mancha', 'diametro', 'longitud', 'densidad', 'grosor', 'dureza', 'tension', 'forma', 'tudel'];
+            attrs.forEach(attr => {
+                const groups = {};
+                reedsStats.filter(r => r[attr]).forEach(r => {
+                    if (!groups[r[attr]]) groups[r[attr]] = { total: 0, succ: 0, fail: 0, finalizadas: 0 };
+                    groups[r[attr]].total++;
+                    if (r.valoracion === 'Tirar' || r.valoracion === 'Se rompió') groups[r[attr]].fail++;
+                    if (r.stage === 'Finalizada') {
+                        groups[r[attr]].finalizadas++;
+                        if (r.isFavorite) groups[r[attr]].succ++;
+                    }
+                });
+                if(Object.keys(groups).length > 0) {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white p-4 rounded-2xl shadow-sm border border-emerald-50';
+                    let labelsHTML = '<div class="mt-4 pt-4 border-t border-emerald-50 grid grid-cols-2 gap-2 text-[10px]">';
+                    for(let val in groups) {
+                        const g = groups[val];
+                        labelsHTML += `<div class="bg-emerald-50/50 p-1 rounded"><strong>${val}</strong><br>S: ${g.succ}/${g.finalizadas} | F: ${g.fail}/${g.total}</div>`;
+                    }
+                    div.innerHTML = `<h4 class="text-xs font-bold text-emerald-600 uppercase mb-4">${attr}</h4><canvas height="200"></canvas>${labelsHTML}</div>`;
+                    grid.appendChild(div);
+                    const ctx = div.querySelector('canvas').getContext('2d');
+                    chartInstances.push(new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(groups),
+                            datasets: [
+                                { label: 'Éxito', data: Object.values(groups).map(g => g.finalizadas > 0 ? Math.round(g.succ/g.finalizadas*100) : 0), backgroundColor: Object.values(groups).map(g => getConfidenceColor(g.finalizadas, true)) },
+                                { label: 'Fallo', data: Object.values(groups).map(g => g.total > 0 ? Math.round(g.fail/g.total*100) : 0), backgroundColor: Object.values(groups).map(g => getConfidenceColor(g.total, false)) }
+                            ]
+                        },
+                        options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+                    }));
+                }
+            });
+        }
+
+        function updateAnalysis() {
+            const reedsStats = reeds.filter(r => r.stage !== 'Rotas');
+            const succContainer = document.getElementById('analysis-grid-succ');
+            const failContainer = document.getElementById('analysis-grid-fail');
+            succContainer.innerHTML = ''; failContainer.innerHTML = '';
+            const attrs = ['marca', 'material', 'mancha', 'diametro', 'longitud', 'densidad', 'grosor', 'dureza', 'tension', 'forma', 'tudel'];
+            attrs.forEach(attr => {
+                const groups = {};
+                reedsStats.forEach(r => {
+                    if(!r[attr]) return;
+                    if(!groups[r[attr]]) groups[r[attr]] = { total: 0, succ: 0, fail: 0, finalizadas: 0 };
+                    groups[r[attr]].total++;
+                    if(r.valoracion === 'Tirar' || r.valoracion === 'Se rompió') groups[r[attr]].fail++;
+                    if(r.stage === 'Finalizada') { groups[r[attr]].finalizadas++; if(r.isFavorite) groups[r.isFavorite] = true; if(r.isFavorite) groups[r[attr]].succ++; }
+                });
+                if(Object.keys(groups).length > 0) {
+                    let htmlS = `<div class="bg-white p-4 rounded-2xl border border-emerald-50"><h4 class="text-[9px] font-bold text-emerald-600 uppercase mb-3">${attr}</h4>`;
+                    let htmlF = `<div class="bg-white p-4 rounded-2xl border border-emerald-50"><h4 class="text-[9px] font-bold text-emerald-600 uppercase mb-3">${attr}</h4>`;
+                    for(let val in groups) {
+                        const g = groups[val];
+                        const sPct = g.finalizadas > 0 ? Math.round((g.succ / g.finalizadas) * 100) : 0;
+                        const fPct = g.total > 0 ? Math.round((g.fail / g.total) * 100) : 0;
+                        htmlS += `<div class="flex justify-between text-xs mb-1"><span class="font-medium truncate mr-2">${val}</span><span class="font-bold text-emerald-600">${sPct}%</span></div>`;
+                        htmlF += `<div class="flex justify-between text-xs mb-1"><span class="font-medium truncate mr-2">${val}</span><span class="font-bold text-rose-600">${fPct}%</span></div>`;
+                    }
+                    succContainer.innerHTML += htmlS + '</div>'; failContainer.innerHTML += htmlF + '</div>';
+                }
+            });
+            updateCharts();
+        }
+
+        function render() {
+            const tbody = document.getElementById('reed-table-body');
+            const stats = document.getElementById('dashboard-stats');
+            tbody.innerHTML = ''; stats.innerHTML = '';
+            const reedsStats = reeds.filter(r => r.stage !== 'Rotas');
+            const finalizadas = reedsStats.filter(r => r.stage === 'Finalizada');
+            const favoritas = finalizadas.filter(r => r.isFavorite);
+            const tasaExito = finalizadas.length > 0 ? Math.round((favoritas.length / finalizadas.length) * 100) : 0;
+
+            stats.innerHTML += `<div class="card-ui p-3 rounded-2xl text-center bg-emerald-50 border-emerald-200"><h3 class="text-[9px] uppercase font-bold text-emerald-600 mb-1">Tasa Éxito</h3><p class="text-xl font-bold text-emerald-700">${tasaExito}%</p></div>`;
+            stages.forEach(s => {
+                const count = reeds.filter(r => r.stage === s).length;
+                stats.innerHTML += `<div class="card-ui p-3 rounded-2xl text-center"><h3 class="text-[9px] uppercase font-bold text-emerald-500 mb-1">${s}</h3><p class="text-xl font-semibold text-emerald-600">${count}</p></div>`;
+            });
+            reeds.sort((a,b) => Number(b.palaNum) - Number(a.palaNum)).forEach(r => {
+                const tr = document.createElement('tr');
+                if(r.isFavorite) tr.classList.add('row-fav');
+                tr.innerHTML = `
+                    <td class="p-3 text-center"><button onclick="toggleFavorite(${r.id})" class="text-xl">${r.isFavorite ? '❤️' : '🤍'}</button></td>
+                    <td class="p-3 text-xs font-bold text-emerald-600 uppercase tracking-widest">${r.ciudad || '-'}</td>
+                    <td class="p-3">${r.photo ? `<img src="${r.photo}" class="thumbnail" onclick="viewPhoto('${r.photo}')">` : '-'}</td>
+                    <td class="p-3 font-bold text-emerald-700">#${r.palaNum}</td>
+                    <td class="p-3 text-xs">${r.marca || '-'}</td><td class="p-3 text-xs">${r.material || '-'}</td><td class="p-3 text-xs">${r.mancha || '-'}</td>
+                    <td class="p-3 text-xs">${r.diametro || '-'}</td>
+                    <td class="p-3 text-xs">${r.densidad || '-'}</td><td class="p-3 text-xs">${r.grosor || '-'}</td><td class="p-3 text-xs">${r.dureza || '-'}</td>
+                    <td class="p-3 text-xs">${r.tension || '-'}</td>
+                    <td class="p-3 text-xs">${r.forma || '-'}</td>
+                    <td class="p-3 text-xs">${r.tudel || '-'}</td>
+                    <td class="p-3 text-xs">${r.fechaAtado || '-'}</td>
+                    <td class="p-3 text-xs">${r.longitud || '-'}</td>
+                    <td class="p-3 text-xs">${r.fechaRasp1 || '-'}</td>
+                    <td class="p-3 text-xs font-bold ${r.valoracion === 'Concierto' ? 'bg-concierto' : r.valoracion === 'Estudio' ? 'bg-estudio' : r.valoracion === 'Tirar' ? 'bg-tirar' : r.valoracion === 'Se rompió' ? 'bg-rompio' : ''}">${r.valoracion || '-'}</td>
+                    <td class="p-3"><select onchange="updateStage(${r.id}, this.value)" class="text-[10px] border border-emerald-200 rounded-lg px-2 py-1 bg-transparent outline-none text-emerald-800 font-medium">${stages.map(s => `<option value="${s}" ${r.stage === s ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
+                    <td class="p-3 flex gap-2 justify-center"><button onclick="editReed(${r.id})" class="text-emerald-500 hover:text-emerald-700 font-bold">Edit</button><button onclick="deleteReed(${r.id})" class="text-rose-400 hover:text-rose-600 font-bold ml-2">×</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateAnalysis();
+        }
+
+        window.toggleFavorite = (id) => { reeds = reeds.map(r => r.id === id ? {...r, isFavorite: !r.isFavorite} : r); localStorage.setItem('reeds', JSON.stringify(reeds)); render(); };
+        window.updateStage = (id, newStage) => { reeds = reeds.map(r => r.id === id ? {...r, stage: newStage} : r); localStorage.setItem('reeds', JSON.stringify(reeds)); render(); };
+        window.deleteReed = (id) => { reeds = reeds.filter(r => r.id !== id); localStorage.setItem('reeds', JSON.stringify(reeds)); render(); };
+
+        document.getElementById('reedForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('reedId').value;
+            const file = document.getElementById('fotoFile').files[0];
+            let photo = id ? reeds.find(r => r.id == id).photo : null;
+            if (file) photo = await new Promise(res => { const reader = new FileReader(); reader.onload = () => res(reader.result); reader.readAsDataURL(file); });
+            const data = {
+                id: id ? parseInt(id) : Date.now(), 
+                palaNum: document.getElementById('palaNum').value, 
+                ciudad: document.getElementById('ciudad').value,
+                isFavorite: id ? reeds.find(r => r.id == id).isFavorite : false,
+                marca: document.getElementById('marca').value, material: document.getElementById('material').value, mancha: document.getElementById('mancha').value,
+                diametro: document.getElementById('diametro').value, longitud: document.getElementById('longitud').value,
+                densidad: document.getElementById('densidad').value, grosor: document.getElementById('grosor').value, dureza: document.getElementById('dureza').value,
+                tension: document.getElementById('tension').value, forma: document.getElementById('forma').value, tudel: document.getElementById('tudel').value,
+                stage: document.getElementById('stage').value, fechaAtado: document.getElementById('fechaAtado').value,
+                fechaRasp1: document.getElementById('fechaRasp1').value,
+                valoracion: document.getElementById('valoracion').value, sensaciones: document.getElementById('sensaciones').value, photo: photo
+            };
+            if (id) reeds = reeds.map(r => r.id == id ? data : r); else reeds.push(data);
+            localStorage.setItem('reeds', JSON.stringify(reeds)); closeModal(); render();
+        };
+
+        window.editReed = (id) => {
+            const r = reeds.find(r => r.id === id);
+            document.getElementById('reedId').value = r.id; document.getElementById('palaNum').value = r.palaNum; document.getElementById('ciudad').value = r.ciudad || ''; document.getElementById('marca').value = r.marca || '';
+            document.getElementById('material').value = r.material || ''; document.getElementById('mancha').value = r.mancha || '';
+            document.getElementById('diametro').value = r.diametro || ''; document.getElementById('longitud').value = r.longitud || '';
+            document.getElementById('densidad').value = r.densidad || ''; document.getElementById('grosor').value = r.grosor || '';
+            document.getElementById('dureza').value = r.dureza || ''; document.getElementById('tension').value = r.tension || '';
+            document.getElementById('forma').value = r.forma || ''; document.getElementById('tudel').value = r.tudel || '';
+            document.getElementById('fechaAtado').value = r.fechaAtado || ''; document.getElementById('fechaRasp1').value = r.fechaRasp1 || '';
+            document.getElementById('stage').value = r.stage;
+            document.getElementById('valoracion').value = r.valoracion || ''; document.getElementById('sensaciones').value = r.sensaciones || '';
+            openModal('Editar #' + r.palaNum);
+        }
+        window.openModal = (t='Nueva Pala') => { document.getElementById('modalTitle').innerText = t; document.getElementById('reedModal').classList.remove('hidden'); }
+        window.closeModal = () => { document.getElementById('reedModal').classList.add('hidden'); document.getElementById('reedForm').reset(); document.getElementById('reedId').value = ''; }
+        render();
+    </script>
+</body>
+</html>
